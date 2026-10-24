@@ -1,0 +1,27 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug GeneralBoilerplate Web",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/GeneralBoilerplateWeb.py",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Debug GeneralBoilerplate Service",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/GeneralBoilerplateService.py",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Debug Entrambi (Web + Service)",
+            "configurations": ["Debug GeneralBoilerplate Web", "Debug GeneralBoilerplate Service"]
+        }
+    ]
+}

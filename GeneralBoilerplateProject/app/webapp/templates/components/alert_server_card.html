@@ -1,0 +1,16 @@
+<!-- Componente Autonomo: Card Allerta di Sistema -->
+<div id="alert-{{ notify_key }}" class="alert-card-tech {{ severity | lower }}">
+    <!-- Icona Neon gestita al 100% dal CSS in base alla classe severity -->
+    <div class="alert-icon"></div>
+
+    <!-- Testo dell'Allerta -->
+    <div class="alert-content">
+        <span class="alert-prefix"></span>
+        <span class="alert-message">{{ message }}</span>
+    </div>
+
+    <!-- Tasto Chiudi (se la notifica NON è permanente) -->
+    {% if not permanent %}
+        <button class="alert-close-btn" onclick="document.getElementById('alert-{{ notify_key }}').remove()">✕</button>
+    {% endif %}
+</div>
