@@ -1,13 +1,18 @@
 # library/api/web/dependencies.py
 
+from tkinter import NO
 from typing import Dict, Any, Callable
 from fastapi import Request, HTTPException, status, Depends
 from fastapi.responses import RedirectResponse
 from app.services import AuthService
 from app.core.constants import (
+    LANG_KEY,
     NOTIFY_ERROR,
+    SOCKET_NAMESPACES,
     SYSTEM_SETTING_KEY,
-    GENERAL_BOILERPLATE_WEB_FIRST_PAGE_DEFAULT
+    GENERAL_BOILERPLATE_WEB_FIRST_PAGE_DEFAULT,
+    APPLICATION_NAME_SERVICE,
+    MSG_SERVICE_SOCKET_TYPE
 )
 
 def get_auth_service(request: Request) -> AuthService:
@@ -33,20 +38,39 @@ async def get_current_user_session(
         if auth_header and auth_header.startswith("Bearer "):
             token = auth_header.split(" ")[1]
 
+    # Recuperiamo l'istanza di socketio.AsyncServer già registrata in app.state.sio
+    sio_server = getattr(request.app.state, "sio", None)
+
    # CASO 1: Token di sessione assente
     if not token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail= NOTIFY_ERROR.MISSING_TOKEN
-        )
+        if sio_server:
+            await sio_server.emit(
+                MSG_SERVICE_SOCKET_TYPE.MSG_USER_TOAST,
+                {
+                    "sender": APPLICATION_NAME_SERVICE,
+                    "msg_type": MSG_SERVICE_SOCKET_TYPE.MSG_USER_TOAST,
+                    "notify_key": "error",                    
+                    "message": LANG_KEY.ALERT_MISSING_TOKEN
+                },
+                namespace=SOCKET_NAMESPACES.WEB
+            )
+        return None
 
-    # CASO 2: Token inviato ma sessione scaduta sul DB
+   # CASO 2: Token inviato ma sessione scaduta sul DB
     session_info = auth_service.validate_session(token)
     if not session_info:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=NOTIFY_ERROR.SESSION_EXPIRED
-        )
+        if sio_server:
+            await sio_server.emit(
+                 MSG_SERVICE_SOCKET_TYPE.MSG_USER_TOAST,
+                {
+                    "sender": APPLICATION_NAME_SERVICE,
+                    "msg_type": MSG_SERVICE_SOCKET_TYPE.MSG_USER_TOAST,
+                    "notify_key": "error",                    
+                    "message": LANG_KEY.ALERT_SESSION_EXPIRED
+                },
+                namespace=SOCKET_NAMESPACES.WEB
+            )
+        return None
 
     return session_info
 

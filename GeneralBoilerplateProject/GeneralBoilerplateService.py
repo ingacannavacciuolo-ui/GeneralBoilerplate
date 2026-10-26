@@ -68,7 +68,7 @@ def start_api_server(app: FastAPI, host: str = "0.0.0.0", port: int = 8000) -> u
 
 
 
-    
+# CLient che si connette al WebSocket del GeneralBoilerplateWeb per inviare notifiche    
 def start_service_socket_client(repo_container: None) -> GeneralBoilerplateServiceClientSocket:
     """Istanziamento ed avvio del client socket in un thread dedicato in background."""
     logger.info("Avvio Client Socket Notifiche verso GeneralBoilerplateWeb...")

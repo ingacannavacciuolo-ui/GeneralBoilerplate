@@ -1,4 +1,5 @@
 from .socket import (
+    sio,
     sio_app,
     init_socket_receiver,
     GeneralBoilerplateServiceClientSocket,
@@ -11,8 +12,7 @@ from .web import (
 )
 
 __all__ = [
-    "studies_rest_router",
-    "studies_socket_router",
+    "sio",
     "sio_app",
     "init_socket_receiver",
     "GeneralBoilerplateServiceClientSocket",

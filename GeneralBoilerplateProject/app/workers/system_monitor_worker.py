@@ -1,5 +1,6 @@
 """
 Modulo per il monitoraggio continuativo delle risorse di sistema e il dispatching delle notifiche.
+Usato lato GeneralBoilerplateService per inviare notifiche verso GeneralBoilerplateWeb tramite socket.
 
 Il worker `system_monitor_worker` avvia due thread separati in background:
 - Thread Heartbeat: Invia periodicamente lo stato ONLINE del servizio via socket.
@@ -109,7 +110,7 @@ def _dispatcher_loop(
 
 
 def start_system_monitor_worker(
-service_socket: Any,
+    service_socket: Any,
     dbmanager: Any,    
     shutdown_event: threading.Event,
     heartbeat_interval: int = 15,

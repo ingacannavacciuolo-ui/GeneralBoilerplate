@@ -8,10 +8,10 @@ SET pg_restore_path=C:\PROGRA~1\PostgreSQL\18\bin\pg_restore.exe
 SET options= -v --no-owner
 SET host_name=localhost
 SET user_name=postgres
-SET port_number=5432
+SET port_number=5434
 SET db_name=GENERAL_BOILERPLATE
-SET target_dump_path=D:\Projects\GeneralBoilerplate\Database\
-SET dump_file_name=GENERAL_BOILERPLATE_202610202214.dump
+SET target_dump_path=E:\Progetti\Python\GeneralBoilerplate\Database\
+SET dump_file_name=GENERAL_BOILERPLATE_202610242043.dump
 
 REM :> Executing command restore database
 REM :createdb -h localhost -p 5432 -U postgres testdb

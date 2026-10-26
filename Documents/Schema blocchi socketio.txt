@@ -1,0 +1,40 @@
++-----------------------------------+
+|     Worker di sistema             |
+|  (system_monitor_worker.py)       |
++-----------------------------------+
+                  |
+                  | Send notification (TCP/Socket)
+                  v
++-----------------------------------+
+|  Socket Receiver (Backend)        |
+|  (web_receiver_socket.py)         |
+|  - sio (AsyncServer)              |
++-----------------------------------+
+     |                         ^
+     |                         |
+     | montato su              | salvato in
+     v                         | app.state.sio
++-------------------------------------------------------+
+|                 FastAPI Application                   |
+|             (GeneralBoilerplateWeb.py)                |
+|                                                       |
+|  - app.mount("/socket.io", sio_app) -> gestisce rete  |
+|  - app.state.sio                    -> gestisce invio |
++-------------------------------------------------------+
+                  |
+                  | Dipendenze / Router
+                  v
++-----------------------------------+
+|    Dipendenze FastAPI             |
+|    (dependencies.py)              |
+|                                   |
+|  Legge request.app.state.sio      |
+|  ed esegue sio.emit(...)          |
++-----------------------------------+
+                  |
+                  | Notifica Real-Time (WebSocket)
+                  v
++-----------------------------------+
+|     Client Browser (Frontend)     |
+|     (Mostra Toast a schermo)      |
++-----------------------------------+

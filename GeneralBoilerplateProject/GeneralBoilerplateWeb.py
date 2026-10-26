@@ -9,7 +9,7 @@ from fastapi.responses import RedirectResponse
 from app.core.dbmanager import DatabaseManager
 from app.core.logger import SystemLogger
 from app.repository import RepositoryContainer
-from app.api import pages_router, sio_app, init_socket_receiver
+from app.api import pages_router, sio_app, sio, init_socket_receiver
 from app.core.constants import LOG_FILE_NAME_WEB, APPLICATION_NAME_WEB
 from app.core.types import GENERAL_BOILERPLATE_CONFIG
 from app.i18n import DEFAULT_LANG
@@ -51,6 +51,7 @@ def create_web_app(dbmanager: DatabaseManager, repos: RepositoryContainer) -> Fa
     # Iniezione riferimenti DB e Repository nello stato dell'applicazione
     app.state.dbmanager = dbmanager
     app.state.repo_container = repos
+    app.state.sio = sio
 
     # Inizializza il ricevitore Socket.IO della Web App
     init_socket_receiver(dbmanager,

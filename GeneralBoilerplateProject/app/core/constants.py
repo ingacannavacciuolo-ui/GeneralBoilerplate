@@ -59,6 +59,7 @@ class SYSTEM_SETTING_KEY(str,Enum):
 class MSG_SERVICE_SOCKET_TYPE(str, Enum):
     MSG_SERVICE_STATUS = 'service_status'
     MSG_SERVICE_SEVERITY = 'service_severity'
+    MSG_USER_TOAST = 'user_toast'
 
 # COSTANTI DI STATO - Constanti usate per gestire
 # lo stato di un oggetto o di un'attività
@@ -86,6 +87,8 @@ class SERVICE_STATUS_STATES_VIEW(str,Enum):
 class SOCKET_EVENTS(str, Enum):
     SERVICE_STATUS_UPDATE = "service_status_update"
     SERVER_ALIVE = "server_alive"
+    ACTIVE_ALERTS_LIST = "active_alerts_list"
+    GET_ACTIVE_ALERTS = "get_active_alerts"
 
 
 # COSTANTI NAMESPACE

@@ -1,90 +1,145 @@
+/* ==========================================================================
+   MAIN_PAGE.JS - Gestione Top Bar, Allerte (AlertTopBarIcon) e Interfaccia
+   ========================================================================== */
 
-// ==========================================================================
-// 1. GESTIONE NAVIGAZIONE DA BROWSER (Legge la reason dall'URL al caricamento)
-// ==========================================================================
-document.addEventListener('DOMContentLoaded', () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const reason = urlParams.get('reason');
+// --------------------------------------------------------------------------
+// OGGETTO GLOBALE: AlertTopBarIcon
+// Invocato direttamente da app_socket_manager.js tramite:
+// AlertTopBarIcon.updateIconState(data);
+// --------------------------------------------------------------------------
+window.AlertTopBarIcon = {
+    // Traccia le allerte correnti suddivise per severità
+    alertsData: {
+        critical: [],
+        warning: [],
+        info: []
+    },
 
-    if (reason === NOTIFY_ERROR.INSUFFICIENT_PERMISSIONS) {
-        const messaggio = window.t(LANG_KEY.ALERT_INSUFFICIENT_PERMISSIONS );
-        
-        mostraToast(messaggio, "error");
+    /**
+     * Metodo principale richiamato da app_socket_manager.js per ogni alert dal DB
+     * @param {Object} alertData - Oggetto contenente i dettagli dell'alert
+     */
+    updateIconState: function(alertData) {
+        if (!alertData) return;
 
-        // Pulisce l'URL cancellando ?reason=... così se l'utente aggiorna la pagina il toast non riappare
-        window.history.replaceState({}, document.title, window.location.pathname);
-    }
-});
+        // Normalizza la severità (es. 'critical', 'warning', 'info')
+        const severity = (alertData.severity || alertData.level || alertData.msg_type || 'info').toLowerCase();
 
-// ==========================================================================
-// 2. MONKEY PATCH GLOBALE SU FETCH (Intercetta il 401 ovunque)
-// ==========================================================================
-const originalFetch = window.fetch;
+        if (this.alertsData.hasOwnProperty(severity)) {
+            // Controlla se l'alert è già presente per evitare duplicati (se ha un id univoco)
+            const exists = alertData.id && this.alertsData[severity].some(a => a.id === alertData.id);
+            if (!exists) {
+                this.alertsData[severity].push(alertData);
+            }
 
-window.fetch = async function (...args) {
-    const response = await originalFetch(...args);
+            // Renderizza l'alert nel rispettivo container dropdown
+            this.renderAlertCard(severity, alertData);
 
-    // 1. Controllo se il fetch è stato reindirizzato alla login con un motivo
-    if (response.redirected && response.url.includes('reason=')) {
-        const url = new URL(response.url);
-        const reason = url.searchParams.get('reason');
-
-        let messaggio = window.t(LANG_KEY.ALERT_SESSION_EXPIRED);
-        if (reason === NOTIFY_ERROR.MISSING_TOKEN) {
-            messaggio = window.t(LANG_KEY.ALERT_MISSING_TOKEN);
-        } else if (reason === NOTIFY_ERROR.SESSION_EXPIRED) {
-            messaggio = window.t(LANG_KEY.ALERT_SESSION_EXPIRED);
+            // Aggiorna lo stato dell'icona (ON/OFF) e il contatore
+            this.refreshIconUI(severity);
         }
+    },
 
-        // Fai scattare subito il Toast e avvia il timer per il redirect
-        forzaLogoutSessioneScaduta(messaggio);
-        
-        // Interrompiamo la catena restituendo una risposta vuota per bloccare eventuali elaborazioni JS successive
-        return new Response(JSON.stringify({ error: NOTIFY_ERROR.SESSION_EXPIRED }), { status: 401 });
-    }
+    /**
+     * Rimuove o risolve un alert specifico
+     * @param {string} severity - 'critical' | 'warning' | 'info'
+     * @param {string|number} alertId - ID dell'alert da rimuovere
+     */
+    removeAlert: function(severity, alertId) {
+        if (this.alertsData[severity]) {
+            this.alertsData[severity] = this.alertsData[severity].filter(a => a.id !== alertId);
+            
+            // Rimuove la card dal DOM
+            const cardEl = document.getElementById(`alert-card-${alertId}`);
+            if (cardEl) {
+                cardEl.remove();
+            }
 
-    // 2. Controllo standard in caso di risposta 401 JSON diretta
-    if (response.status === 401 && !window.location.pathname.endsWith('/')) {
-        const data = await response.clone().json().catch(() => ({}));
-
-        let messaggio = window.t(LANG_KEY.ALERT_SESSION_EXPIRED);
-        if (data.detail === NOTIFY_ERROR.MISSING_TOKEN) {
-            messaggio = window.t(LANG_KEY.ALERT_MISSING_TOKEN);
-        } else if (data.detail === NOTIFY_ERROR.SESSION_EXPIRED) {
-            messaggio = window.t(LANG_KEY.ALERT_SESSION_EXPIRED);
+            // Aggiorna lo stato visivo visibilità badge
+            this.refreshIconUI(severity);
         }
+    },
 
-        forzaLogoutSessioneScaduta(messaggio);
+    /**
+     * Resetta tutti gli alert di una determinata categoria
+     * @param {string} severity 
+     */
+    clearAll: function(severity) {
+        if (this.alertsData[severity]) {
+            this.alertsData[severity] = [];
+            const container = document.getElementById(`container-${severity}-alerts`);
+            if (container) {
+                container.innerHTML = '';
+            }
+            this.refreshIconUI(severity);
+        }
+    },
+
+    /**
+     * Aggiorna contatore visivo e classe .off/accensione per la tipologia indicata
+     * @param {string} severity 
+     */
+    refreshIconUI: function(severity) {
+        const wrapper = document.getElementById(`wrapper-${severity}`);
+        const countSpan = document.getElementById(`count-${severity}`);
+
+        if (!wrapper || !countSpan) return;
+
+        const count = this.alertsData[severity].length;
+        
+        // Aggiorna la cifra visibile
+        countSpan.innerText = count;
+
+        if (count > 0) {
+            // Se c'è almeno 1 alert accende l'icona rimuovendo .off (attiva colori neon e glow)
+            wrapper.classList.remove('off');
+        } else {
+            // Se 0 alert ripristina lo stato spento (.off) grigio opaco
+            wrapper.classList.add('off');
+        }
+    },
+
+    /**
+     * Renderizza dinamicamente una card all'interno del dropdown corrispondente
+     * @param {string} severity 
+     * @param {Object} alertData 
+     */
+    renderAlertCard: function(severity, alertData) {
+        const container = document.getElementById(`container-${severity}-alerts`);
+            if (!container) return;
+
+            const card = document.createElement('div');
+            // Usa le classi ufficiali ereditate da alert_server_card.css
+            card.className = `alert-card-tech ${severity}`;
+            if (alertData.id) card.id = `alert-card-${alertData.id}`;
+
+            const message = alertData.message || alertData.text || 'Nessun dettaglio specificato';
+
+            // Generazione HTML permanente (SENZA tasto chiusura)
+            card.innerHTML = `
+                <div class="alert-icon"></div>
+                <div class="alert-content">
+                    <span class="alert-prefix"></span>
+                    <span class="alert-message">${message}</span>
+                </div>
+            `;
+
+            // Inserisce in cima alla lista nel dropdown
+            container.insertBefore(card, container.firstChild);
     }
-
-    
-
-    return response;
 };
 
-// Intercetta qualsiasi click su pulsanti o link interattivi nella pagina
-document.addEventListener('click', async (event) => {
-    // Se l'elemento cliccato è un pulsante o ha una classe interattiva
-    const elemento = event.target.closest('button, .btn, a[data-api]');
-    
-    if (elemento) {
-        // Chiama la rotta corrente per verificare la validità della sessione
-        await fetch(window.location.pathname);
-    }
-});
+// --------------------------------------------------------------------------
+// INIZIALIZZAZIONE AL CARICAMENTO DELLA PAGINA
+// --------------------------------------------------------------------------
+document.addEventListener('DOMContentLoaded', () => {
+    // Inizializza tutte e tre le icone nello stato di default (.off)
+    ['critical', 'warning', 'info'].forEach(severity => {
+        AlertTopBarIcon.refreshIconUI(severity);
+    });
 
-// ==========================================================================
-// 2. WRAPPER apiFetch (Semplificato)
-// ==========================================================================
-async function apiFetch(url, options = {}) {
-    try {
-        // Chiama il fetch che ora è protetto dall'intercettore globale
-        return await fetch(url, options);
-    } catch (error) {
-        mostraToast(window.t(LANG_KEY.SERVER_CONNECTION_ERROR), "error");
-        throw error;
-    }
-}
+    console.log('[MainPage] Inizializzata gestione AlertTopBarIcon in stato .off di default.');
+});
 
 // ==========================================================================
 // 3. FUNZIONE GLOBALE PER MOSTRARE NOTIFICHE TOAST
@@ -118,24 +173,4 @@ function mostraToast(messaggio, tipo = 'success') {
             toast.remove();
         }, 500);
     }, 4000);
-}
-
-
-
-// ==========================================================================
-// 4. FUNZIONE PER REDIRECT SU SESSIONE SCADUTA
-// ==========================================================================
-function forzaLogoutSessioneScaduta(messaggio = window.t(LANG_KEY.ALERT_SESSION_EXPIRED)) {
-    //console.warn("[SESSION] Intercettata sessione scaduta:", messaggio);
-
-    // 1. Pulisce la sessione locale del browser
-    sessionStorage.clear();
-
-    // 2. Mostra il Toast d'errore
-    mostraToast(messaggio, "error");
-
-    // 3. Attende 2 secondi per mostrare l'animazione del Toast prima del redirect
-    setTimeout(() => {
-        window.location.href = "/logout";
-    }, 2000);
 }

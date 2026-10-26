@@ -90,8 +90,8 @@ class GeneralBoilerplateWebReceiverSocket(socketio.AsyncNamespace):
         # Se si tratta dello stato di severity, lo gestiamo tramite il tipo
         elif msg_type == MSG_SERVICE_SOCKET_TYPE.MSG_SERVICE_SEVERITY:
             await self._handle_service_severity(data)
-           
-        
+        elif msg_type == MSG_SERVICE_SOCKET_TYPE.MSG_USER_TOAST:
+            await self._handle_user_toast(data)
 
     async def on_disconnect(self, sid):
         # SOLTANTO se a disconnettersi è il vero Service impostiamo OFFLINE e notifichiamo a tutti!
@@ -150,8 +150,7 @@ class GeneralBoilerplateWebReceiverSocket(socketio.AsyncNamespace):
             logger.error(f"[WEB SOCKET RECEIVER] Errore durante il recupero delle allerte attive per sid {sid}: {e}", exc_info=True)
    
    
-    # --- HANDLER DEDICATI PER TIPOLOGIA ---
-   
+    # --- HANDLER DEDICATI PER TIPOLOGIA MESSAGGIO ---  
 
     async def _handle_service_status(self, data: Dict[str, Any]):
         """Gestisce Heartbeat e stato operativo di GeneralBoilerplateService."""
@@ -163,57 +162,27 @@ class GeneralBoilerplateWebReceiverSocket(socketio.AsyncNamespace):
         await self.emit(SOCKET_EVENTS.SERVICE_STATUS_UPDATE, data)
 
 
-
     async def _handle_service_severity(self, data: Dict[str, Any]):
-        severity = str(data.get("severity", "")).upper()
-        if severity == NOTIFY_SEVERITY.CRITICAL:
-                await self._handle_severity_critical(data)
-
-        elif severity == NOTIFY_SEVERITY.WARNING:
-            await self._handle_severity_warning(data)
-
-        elif severity == NOTIFY_SEVERITY.INFO:
-            await self._handle_severity_info(data)
-
-        else:
-            await self.emit(NOTIFY_SEVERITY.GENERIC, data)
-
-        
-
-    async def _handle_severity_critical(self, data: Dict[str, Any]):
-        """Gestisce avvisi critici (CRITICAL)."""
+        """Gestisce l'invio unico di tutti gli avvisi di severity."""
+        severity = str(data.get("severity", "INFO")).upper()
         notify_key = data.get("notify_key", NOTIFY_KEY.UNKNOWN_KEY)
         message = data.get("message", LANG_KEY.NO_DETAILS_PROVIDED)
 
-        logger.warning(f"[CRITICAL ALERT] Key: {notify_key} | Msg: {message}")
+        logger.info(f"[{severity} ALERT] Key: {notify_key} | Msg: {message}")
 
-        # Emette sul canale socket dedicato 'CRITICAL'
-        await self.emit(NOTIFY_SEVERITY.CRITICAL, data)
+        # Emette sul singolo canale Socket unico per la severity
+        await self.emit(MSG_SERVICE_SOCKET_TYPE.MSG_SERVICE_SEVERITY, data)
 
 
-
-    async def _handle_severity_warning(self, data: Dict[str, Any]):
-        """Gestisce avvisi di avvertimento (WARNING)."""
+    async def _handle_user_toast(self, data: Dict[str, Any]):
+        """Gestisce l'invio di notifiche toast verso il browser."""
         notify_key = data.get("notify_key", NOTIFY_KEY.UNKNOWN_KEY)
         message = data.get("message", LANG_KEY.NO_DETAILS_PROVIDED)
 
-        logger.warning(f"[WARNING ALERT] Key: {notify_key} | Msg: {message}")
+        logger.info(f"[USER TOAST] Key: {notify_key} | Msg: {message}")
 
-        # Emette sul canale socket dedicato 'WARNING'
-        await self.emit(NOTIFY_SEVERITY.WARNING, data)
-
-
-
-
-    async def _handle_severity_info(self, data: Dict[str, Any]):
-        """Gestisce avvisi informativi (INFO)."""
-        notify_key = data.get("notify_key", NOTIFY_KEY.UNKNOWN_KEY)
-        message = data.get("message", LANG_KEY.NO_DETAILS_PROVIDED)
-
-        logger.info(f"[INFO ALERT] Key: {notify_key} | Msg: {message}")
-
-        # Emette sul canale socket dedicato 'INFO'
-        await self.emit(NOTIFY_SEVERITY.INFO, data)
+        # Emette sul singolo canale Socket unico per i toast
+        await self.emit(MSG_SERVICE_SOCKET_TYPE.MSG_USER_TOAST, data)
 
 
 

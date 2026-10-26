@@ -68,6 +68,7 @@ class GeneralBoilerplateServiceClientSocket:
 
         try:
             repo = self.repo_container.appsystemsettingsrepo
+            # 1. Recupero URL WebSocket dal DB
             url_from_db = repo.get_setting_value(SYSTEM_SETTING_KEY.WEB_SOCKET_URL, default_value=GENERAL_BOILERPLATE_WEB_URL_DEFAULT)
             if url_from_db.startswith("ws://"):
                 url_from_db = url_from_db.replace("ws://", "http://")

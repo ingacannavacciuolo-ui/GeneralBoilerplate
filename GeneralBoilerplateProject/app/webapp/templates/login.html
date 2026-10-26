@@ -19,7 +19,8 @@
         const SOCKET_EVENTS = Object.freeze(JSON.parse('{{ SOCKET_EVENTS | tojson | safe }}'));
         const SERVICE_STATUS_STATES = Object.freeze(JSON.parse('{{ SERVICE_STATUS_STATES | tojson | safe }}'));
         const SERVICE_STATUS_STATES_VIEW = Object.freeze(JSON.parse('{{ SERVICE_STATUS_STATES_VIEW | tojson | safe }}'));     
-        const NOTIFY_SEVERITY = Object.freeze(JSON.parse('{{ NOTIFY_SEVERITY | tojson | safe }}'));     
+        const NOTIFY_SEVERITY = Object.freeze(JSON.parse('{{ NOTIFY_SEVERITY | tojson | safe }}'));  
+        const MSG_SERVICE_SOCKET_TYPE = Object.freeze(JSON.parse('{{ MSG_SERVICE_SOCKET_TYPE | tojson | safe }}'));   
     </script>
 </head>
 <body>
@@ -70,6 +71,8 @@
 
     <!-- Helper i18n da caricare PRIMA dei componenti -->
     <script src="/static/js/i18n.js"></script>
+    <!-- 1. Gestore centrale Socket.IO (Gestisce la connessione di rete e il routing) -->
+    <script src="/static/js/app_socket_manager.js"></script>
     
     <!-- Librerie esterne -->    
     <script src="/static/js/components/status_server_card.js"></script>
