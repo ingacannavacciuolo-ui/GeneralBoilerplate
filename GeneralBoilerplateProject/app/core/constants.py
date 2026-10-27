@@ -85,10 +85,13 @@ class SERVICE_STATUS_STATES_VIEW(str,Enum):
 # ed il web_receiver_socket
 #********************************************
 class SOCKET_EVENTS(str, Enum):
-    SERVICE_STATUS_UPDATE = "service_status_update"
-    SERVER_ALIVE = "server_alive"
+    STATUS_UPDATE = "service_status_update"
+    SEVERITY_UPDATE = 'service_severity_update'
+    USER_TOAST_UPDATE = 'user_toast_update'
+    SERVER_ALIVE = "server_alive"    
     ACTIVE_ALERTS_LIST = "active_alerts_list"
     GET_ACTIVE_ALERTS = "get_active_alerts"
+    REGISTER_SESSION = "register_session"
 
 
 # COSTANTI NAMESPACE

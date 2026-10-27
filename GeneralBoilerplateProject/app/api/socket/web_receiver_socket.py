@@ -1,6 +1,6 @@
 import time
 import socketio
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from app.core.logger import logger
 from app.core.constants import (
     MSG_SERVICE_SOCKET_TYPE,
@@ -32,6 +32,9 @@ class ServiceStatusState:
 
 status_state = ServiceStatusState()
 
+# Mappa globale in memoria: session_token -> sid del browser
+user_sockets: Dict[str, str] = {}
+
 
 class GeneralBoilerplateWebReceiverSocket(socketio.AsyncNamespace):
     """
@@ -46,7 +49,10 @@ class GeneralBoilerplateWebReceiverSocket(socketio.AsyncNamespace):
         self.fallback_lang =fallback_lang
         super().__init__(self.namespace)
 
-   
+    @staticmethod
+    def get_sid_by_token(token: str) -> Optional[str]:
+        """Restituisce il SID del browser associato a un determinato session_token."""
+        return user_sockets.get(token)
 
     async def on_connect(self, sid, environ):
         logger.info(f"[WEB SOCKET RECEIVER] Nuova connessione client [sid: {sid}]")
@@ -63,13 +69,21 @@ class GeneralBoilerplateWebReceiverSocket(socketio.AsyncNamespace):
 
         # Risponde SOLO al browser appena connesso con lo stato reale freschissimo
         await self.emit(
-            SOCKET_EVENTS.SERVICE_STATUS_UPDATE,
+            SOCKET_EVENTS.STATUS_UPDATE,
             {
                 "status": current_status,
                 "message": LANG_KEY.SERVICE_STATUS_CURRENT_MSG
             },
             to=sid
         )
+
+    async def on_register_session(self, sid, data: Dict[str, Any]):
+        """Evento invocato dal frontend JS dopo il login per associare il session_token al sid."""
+        if isinstance(data, dict):
+            token = data.get("session_token")
+            if token:
+                user_sockets[token] = sid
+                logger.info(f"[WEB SOCKET RECEIVER] Sessione associata con successo: [sid: {sid}]")
 
 
     async def on_message(self, sid, data: Dict[str, Any]):
@@ -94,6 +108,11 @@ class GeneralBoilerplateWebReceiverSocket(socketio.AsyncNamespace):
             await self._handle_user_toast(data)
 
     async def on_disconnect(self, sid):
+        # Rimozione dell'associazione session_token -> sid
+        tokens_to_remove = [k for k, v in user_sockets.items() if v == sid]
+        for k in tokens_to_remove:
+            del user_sockets[k]
+
         # SOLTANTO se a disconnettersi è il vero Service impostiamo OFFLINE e notifichiamo a tutti!
         if sid == self.service_sid:
             logger.warning(f"[WEB SOCKET RECEIVER] GeneralBoilerplateService disconnesso [sid: {sid}]")
@@ -101,7 +120,7 @@ class GeneralBoilerplateWebReceiverSocket(socketio.AsyncNamespace):
             status_state.status = SERVICE_STATUS_STATES.OFFLINE
 
             await self.emit(
-                SOCKET_EVENTS.SERVICE_STATUS_UPDATE,
+                SOCKET_EVENTS.STATUS_UPDATE,
                 {
                     "msg_type": MSG_SERVICE_SOCKET_TYPE.MSG_SERVICE_STATUS,
                     "status": SERVICE_STATUS_STATES.OFFLINE,
@@ -143,7 +162,7 @@ class GeneralBoilerplateWebReceiverSocket(socketio.AsyncNamespace):
                     })
 
                 # Invia la lista ESCLUSIVAMENTE al client richiedente (sid)
-                await self.emit("active_alerts_list", alerts_data, to=sid)
+                await self.emit(SOCKET_EVENTS.ACTIVE_ALERTS_LIST, alerts_data, to=sid)
                 logger.info(f"[WEB SOCKET RECEIVER] Inviate {len(alerts_data)} allerte attive al client [sid: {sid}]")
 
         except Exception as e:
@@ -159,7 +178,7 @@ class GeneralBoilerplateWebReceiverSocket(socketio.AsyncNamespace):
 
         logger.info(f"[STATUS HANDLER] Service status: {status_state.status} | Msg: {data.get('message')}")
         # EMIT verso il client Web         
-        await self.emit(SOCKET_EVENTS.SERVICE_STATUS_UPDATE, data)
+        await self.emit(SOCKET_EVENTS.STATUS_UPDATE, data)
 
 
     async def _handle_service_severity(self, data: Dict[str, Any]):
@@ -171,7 +190,7 @@ class GeneralBoilerplateWebReceiverSocket(socketio.AsyncNamespace):
         logger.info(f"[{severity} ALERT] Key: {notify_key} | Msg: {message}")
 
         # Emette sul singolo canale Socket unico per la severity
-        await self.emit(MSG_SERVICE_SOCKET_TYPE.MSG_SERVICE_SEVERITY, data)
+        await self.emit(SOCKET_EVENTS.SEVERITY_UPDATE, data)
 
 
     async def _handle_user_toast(self, data: Dict[str, Any]):
@@ -182,7 +201,7 @@ class GeneralBoilerplateWebReceiverSocket(socketio.AsyncNamespace):
         logger.info(f"[USER TOAST] Key: {notify_key} | Msg: {message}")
 
         # Emette sul singolo canale Socket unico per i toast
-        await self.emit(MSG_SERVICE_SOCKET_TYPE.MSG_USER_TOAST, data)
+        await self.emit(SOCKET_EVENTS.USER_TOAST_UPDATE, data)
 
 
 

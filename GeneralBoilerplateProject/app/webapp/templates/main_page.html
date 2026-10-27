@@ -9,7 +9,14 @@
      <link rel="stylesheet" href="/static/css/main_page.css">
      <link rel="stylesheet" href="/static/css/components/alert_server_card.css">
     {% block extra_css %}{% endblock %}
-
+    <!-- 
+    Token di sessione utente per la comunicazione WebSocket:
+    Il cookie 'session_token' viene mantenuto protetto con il flag 'HttpOnly=True' lato backend (anti-XSS).
+    Passiamo il token tramite questo meta tag per consentire a app_socket_manager.js di leggerlo 
+    ed inviare l'evento 'register_session' a web_receiver_socket.py, associando il session_token 
+    al SID della connessione socket dell'utente per l'invio mirato dei Toast in tempo reale.
+    -->
+    <meta name="user-session-token" content="{{ user.session_token if user else '' }}">
     <script>
         window.TRANSLATIONS = Object.freeze(JSON.parse('{{ TRANSLATIONS | default({}) | tojson | safe }}'));
         const LANG_KEY = Object.freeze(JSON.parse('{{ LANG_KEY | tojson | safe }}'));

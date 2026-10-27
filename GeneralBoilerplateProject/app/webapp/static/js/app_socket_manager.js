@@ -34,13 +34,24 @@ const AppSocketManager = {
         // Evento di avvio e stabilizzazione della connessione WebSocket
         this.socket.on('connect', () => {
             console.log(`[AppSocketManager] Connesso al namespace: ${SOCKET_NAMESPACES.WEB}`);
+
+            // Legge il token dal meta tag HTML invece che dai cookie
+            const metaToken = document.querySelector('meta[name="user-session-token"]')?.content;
+
+            if (metaToken) {
+                console.log('[AppSocketManager] Token trovato. Registrazione sessione...');
+                this.socket.emit(SOCKET_EVENTS.REGISTER_SESSION, { session_token: metaToken });
+            } else {
+                console.log('[AppSocketManager] Nessun token trovato nella pagina.');
+            }
+
             this.socket.emit(SOCKET_EVENTS.GET_ACTIVE_ALERTS);
         });
 
-        // Intercetta l'evento di aggiornamento stato operativo inviato dal backend (web_receiver_socket.py)
-        this.socket.on(SOCKET_EVENTS.SERVICE_STATUS_UPDATE, (data) => this.routeMessage(data));
+        // 1. Intercetta l'evento di aggiornamento stato operativo inviato dal backend (web_receiver_socket.py)
+        this.socket.on(SOCKET_EVENTS.STATUS_UPDATE, (data) => this.routeMessage(data));
 
-        // 1. Intercetta la lista completa di allerte attive inviata dal DB (al refresh / login)
+        // 2. Intercetta la lista completa di allerte attive inviata dal DB (al refresh / login)
         this.socket.on(SOCKET_EVENTS.ACTIVE_ALERTS_LIST, (alerts) => {
             console.log('[AppSocketManager] Ricevute allerte attive dal DB:', alerts);
             if (Array.isArray(alerts)) {
@@ -51,21 +62,22 @@ const AppSocketManager = {
             }
         });     
 
-        // Ascolta il CANALE UNICO per tutte le allerte di severity in tempo reale
-        this.socket.on(MSG_SERVICE_SOCKET_TYPE.MSG_SERVICE_SEVERITY, (data) => {
+        // 3.  Ascolta il CANALE UNICO per tutte le allerte di severity in tempo reale
+        this.socket.on(SOCKET_EVENTS.SEVERITY_UPDATE, (data) => {
             this.routeMessage(data);
         });
 
 
-        // Ascolta il CANALE UNICO per i toast utente in tempo reale
-        this.socket.on(MSG_SERVICE_SOCKET_TYPE.MSG_USER_TOAST, (data) => {
+        // 4.  Ascolta il CANALE UNICO per i toast utente in tempo reale
+        this.socket.on(SOCKET_EVENTS.USER_TOAST_UPDATE, (data) => {
+            console.log("===> [DEBUG SOCKET] TOAST ARRIVATO AL CLIENT! <===", data);
             this.routeMessage(data);
         });
 
        
       
 
-        // Intercetta la disconnessione della rete WebSocket e notifica i componenti visuali
+        // 5. Intercetta la disconnessione della rete WebSocket e notifica i componenti visuali
         this.socket.on('disconnect', () => {
             console.warn('[AppSocketManager] Disconnesso dal server.');
             if (typeof ServerStatusCard !== 'undefined' && typeof ServerStatusCard.setDisconnected === 'function') {
