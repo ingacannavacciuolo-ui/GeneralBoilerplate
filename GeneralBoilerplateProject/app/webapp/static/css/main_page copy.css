@@ -297,7 +297,6 @@ body, html {
     }
 }
 
-
 /* ==========================================================================
    5. CONTENITORI ALLERTE SUPERIORI (TOP BAR CENTER)
    ========================================================================== */
@@ -315,11 +314,6 @@ body, html {
     display: inline-flex;
     align-items: center;
     cursor: pointer;
-}
-
-/* Nasconde l'indicatore se non attivo */
-.alert-topbar-wrapper.hidden {
-    display: none !important;
 }
 
 /* Badge con sfondo scuro coerente con il tema */
@@ -343,50 +337,85 @@ body, html {
 .alert-topbar-icon {
     width: 18px;
     height: 18px;
+    min-width: 18px;
+    min-height: 18px;
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
     display: inline-block;
+    transition: all 0.25s ease;
 }
 
-/* --- VARIANTI SEVERITY (Stile Neon coerente con i Toast) --- */
+/* --------------------------------------------------------------------------
+   STATO SPENTO DE DEFAULT (.off)
+   - Visibile in grigio opaco
+   - Contatore nascosto
+   - Nessun effetto hover sul dropdown
+   -------------------------------------------------------------------------- */
+.alert-topbar-wrapper.off .alert-topbar-badge {
+    border: 1px solid rgba(148, 163, 184, 0.4); /* Opzionale: bordo leggermente più visibile */
+    opacity: 0.6; /* <--- MODIFICA QUESTO (da 0.35 a 0.7) */
+}
+
+.alert-topbar-wrapper.off .alert-topbar-icon {
+    filter: grayscale(100%) brightness(0.8); /* <--- MODIFICA QUESTO (da 0.6 a 0.9) per luminosità*/
+}
+
+.alert-topbar-wrapper.off .alert-topbar-count {
+    display: none;
+}
+
+.alert-topbar-wrapper.off:hover .alert-topbar-dropdown {
+    display: none !important;
+}
+
+/* --------------------------------------------------------------------------
+   STATO ACCESO (Quando viene rimossa la classe .off)
+   - Colori Neon Vivi + Glow + Contatore visibile
+   -------------------------------------------------------------------------- */
 
 /* 1. CRITICAL */
-.alert-topbar-wrapper.critical .alert-topbar-badge {
+.alert-topbar-wrapper.critical .alert-topbar-icon {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="%23ff4d4d" viewBox="0 0 24 24"><path d="M12 2a7 7 0 00-7 7v4.29l-1.7 1.7A1 1 0 004 17h16a1 1 0 00.7-1.71L19 13.29V9a7 7 0 00-7-7zm-1 5h2v2h2v2h-2v2h-2v-2H9V9h2V7zm1 15a2.5 2.5 0 002.45-2h-4.9A2.5 2.5 0 0012 22z"/></svg>');
+}
+.alert-topbar-wrapper.critical:not(.off) .alert-topbar-badge {
     border: 1.5px solid #ff4d4d;
     box-shadow: 0 0 8px rgba(255, 77, 77, 0.35);
 }
-.alert-topbar-wrapper.critical .alert-topbar-icon {
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="%23ff4d4d" viewBox="0 0 24 24"><path d="M12 2a7 7 0 00-7 7v4.29l-1.7 1.7A1 1 0 004 17h16a1 1 0 00.7-1.71L19 13.29V9a7 7 0 00-7-7zm-1 5h2v2h2v2h-2v2h-2v-2H9V9h2V7zm1 15a2.5 2.5 0 002.45-2h-4.9A2.5 2.5 0 0012 22z"/></svg>');
+.alert-topbar-wrapper.critical:not(.off) .alert-topbar-icon {
     filter: drop-shadow(0 0 4px rgba(255, 77, 77, 0.8));
 }
-.alert-topbar-wrapper.critical .alert-topbar-count {
+.alert-topbar-wrapper.critical:not(.off) .alert-topbar-count {
     color: #ff4d4d;
 }
 
 /* 2. WARNING */
-.alert-topbar-wrapper.warning .alert-topbar-badge {
+.alert-topbar-wrapper.warning .alert-topbar-icon {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="%23ff7b00" viewBox="0 0 24 24"><path d="M12 2a7 7 0 00-7 7v4.29l-1.7 1.7A1 1 0 004 17h16a1 1 0 00.7-1.71L19 13.29V9a7 7 0 00-7-7zm0 20a2.5 2.5 0 002.45-2h-4.9A2.5 2.5 0 0012 22z"/></svg>');
+}
+.alert-topbar-wrapper.warning:not(.off) .alert-topbar-badge {
     border: 1.5px solid #ff7b00;
     box-shadow: 0 0 8px rgba(255, 123, 0, 0.4);
 }
-.alert-topbar-wrapper.warning .alert-topbar-icon {
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="%23ff7b00" viewBox="0 0 24 24"><path d="M12 2a7 7 0 00-7 7v4.29l-1.7 1.7A1 1 0 004 17h16a1 1 0 00.7-1.71L19 13.29V9a7 7 0 00-7-7zm0 20a2.5 2.5 0 002.45-2h-4.9A2.5 2.5 0 0012 22z"/></svg>');
+.alert-topbar-wrapper.warning:not(.off) .alert-topbar-icon {
     filter: drop-shadow(0 0 4px rgba(255, 123, 0, 0.8));
 }
-.alert-topbar-wrapper.warning .alert-topbar-count {
+.alert-topbar-wrapper.warning:not(.off) .alert-topbar-count {
     color: #ff7b00;
 }
 
 /* 3. INFO */
-.alert-topbar-wrapper.info .alert-topbar-badge {
+.alert-topbar-wrapper.info .alert-topbar-icon {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="%23f5f22f" viewBox="0 0 24 24"><path d="M12 2a7 7 0 00-7 7v4.29l-1.7 1.7A1 1 0 004 17h16a1 1 0 00.7-1.71L19 13.29V9a7 7 0 00-7-7zm0 20a2.5 2.5 0 002.45-2h-4.9A2.5 2.5 0 0012 22z"/></svg>');
+}
+.alert-topbar-wrapper.info:not(.off) .alert-topbar-badge {
     border: 1.5px solid #f5f22f;
     box-shadow: 0 0 8px rgba(245, 242, 47, 0.45);
 }
-.alert-topbar-wrapper.info .alert-topbar-icon {
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="%23f5f22f" viewBox="0 0 24 24"><path d="M12 2a7 7 0 00-7 7v4.29l-1.7 1.7A1 1 0 004 17h16a1 1 0 00.7-1.71L19 13.29V9a7 7 0 00-7-7zm0 20a2.5 2.5 0 002.45-2h-4.9A2.5 2.5 0 0012 22z"/></svg>');
+.alert-topbar-wrapper.info:not(.off) .alert-topbar-icon {
     filter: drop-shadow(0 0 4px rgba(245, 242, 47, 0.8));
 }
-.alert-topbar-wrapper.info .alert-topbar-count {
+.alert-topbar-wrapper.info:not(.off) .alert-topbar-count {
     color: #f5f22f;
 }
 
@@ -398,20 +427,33 @@ body, html {
     left: 50%;
     transform: translateX(-50%);
     margin-top: 6px;
-    min-width: 280px;
-    max-width: 360px;
+    width: max-content;
     max-height: 350px;
     overflow-y: auto;
     background: rgba(15, 23, 42, 0.95);
     border: 1px solid var(--accent-cyan);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
-    border-radius: 6px;
+    border-radius: 8px;
     padding: 8px;
     z-index: 1000;
     backdrop-filter: blur(8px);
 }
 
-/* Apre il menu a tendina all'hover col mouse */
-.alert-topbar-wrapper:hover .alert-topbar-dropdown {
-    display: block;
+.alert-topbar-dropdown .alert-card-tech {
+    margin-bottom: 8px;
+}
+
+.alert-topbar-dropdown .alert-card-tech:last-child {
+    margin-bottom: 0;
+}
+
+/* Mostra il dropdown all'hover solo se il badge non è .off */
+.alert-topbar-wrapper:not(.off):hover .alert-topbar-dropdown {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Nasconde definitivamente il tasto di chiusura per i messaggi permanenti nella Top Bar */
+.alert-topbar-dropdown .alert-close-btn {
+    display: none !important;
 }

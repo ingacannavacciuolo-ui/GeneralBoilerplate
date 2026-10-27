@@ -49,7 +49,7 @@ class SystemLogger:
 
         # Istanza isolata basata sul nome specifico dell'applicazione
         self._logger = logging.getLogger(self.app_name)
-        self._logger.setLevel(logging.INFO)
+        self._logger.setLevel(self.log_level)
         self._logger.propagate = False
 
         self._formatter = logging.Formatter(

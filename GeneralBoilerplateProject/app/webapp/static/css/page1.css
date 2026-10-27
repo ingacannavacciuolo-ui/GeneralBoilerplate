@@ -3,12 +3,13 @@
    ========================================================================== */
 
 .page1-container {
-    background-color: #050f23; /* Stesso colore della Top Bar */
+    background-color: #050f23;
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: calc(100vh - 110px);
     width: 100%;
+    height: 100%; /* Si espande al 100% dello spazio di <main> */
+    flex: 1;
 }
 
 .page1-title {

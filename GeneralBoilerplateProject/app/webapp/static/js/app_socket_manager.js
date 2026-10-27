@@ -35,6 +35,10 @@ const AppSocketManager = {
         this.socket.on('connect', () => {
             console.log(`[AppSocketManager] Connesso al namespace: ${SOCKET_NAMESPACES.WEB}`);
 
+        this.socket.onAny((eventName, ...args) => {
+            console.log(`[ANY SOCKET EVENT] Evento ricevuto: "${eventName}"`, args);
+        });
+
             // Legge il token dal meta tag HTML invece che dai cookie
             const metaToken = document.querySelector('meta[name="user-session-token"]')?.content;
 
@@ -70,7 +74,7 @@ const AppSocketManager = {
 
         // 4.  Ascolta il CANALE UNICO per i toast utente in tempo reale
         this.socket.on(SOCKET_EVENTS.USER_TOAST_UPDATE, (data) => {
-            console.log("===> [DEBUG SOCKET] TOAST ARRIVATO AL CLIENT! <===", data);
+            //console.log("===> [DEBUG SOCKET] TOAST ARRIVATO AL CLIENT! <===", data);
             this.routeMessage(data);
         });
 
@@ -133,7 +137,7 @@ const AppSocketManager = {
             case MSG_SERVICE_SOCKET_TYPE.MSG_USER_TOAST:
                // Invoca direttamente la funzione mostraToast di main_page.js
                 if (typeof mostraToast === 'function') {
-                    mostraToast(data.message, data.notify_key);
+                    mostraToast(window.t(data.message), data.notify_key);
                 }
                 break;
         }

@@ -26,6 +26,19 @@ body, html {
     overflow: hidden;
     background: radial-gradient(circle at center, var(--bg-gradient-end) 0%, var(--bg-gradient-start) 100%);
     color: var(--text-light);
+  /*  zoom: 0.90; /* Oppure 0.9 / 90% */
+  /* AGGIUNGI QUESTI DUE PER IL LAYOUT VERTICALE */
+    display: flex;
+    flex-direction: column;
+
+}
+
+/* AGGIUNGI QUESTO BLOCCO PER IL TAG MAIN */
+main {
+    flex: 1; /* Forza <main> ad occupare tutto lo spazio libero sotto la nav-bar */
+    width: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 
@@ -33,6 +46,7 @@ body, html {
    2. INTESTAZIONE SUPERIORE (TOP BAR)
    ========================================================================== */
 .main-top-bar {
+    position: relative; /* <-- AGGIUNGI QUESTO */
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -57,6 +71,16 @@ body, html {
     width: auto;
     object-fit: contain;
     filter: drop-shadow(0 0 3px rgba(0, 210, 255, 0.6));
+}
+
+/* 2. Forza le icone di notifica all'esatto centro geometrico della barra */
+.top-bar-center {
+    position: absolute; /* <-- AGGIUNGI QUESTO */
+    left: 50%; /* <-- AGGIUNGI QUESTO */
+    transform: translateX(-50%); /* <-- AGGIUNGI QUESTO */
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
 /* Lato destro: Icona Utente e Pulsante Logout */
@@ -301,12 +325,12 @@ body, html {
    5. CONTENITORI ALLERTE SUPERIORI (TOP BAR CENTER)
    ========================================================================== */
 
-/* Posizionamento centrale nella Top Bar */
+/* Posizionamento centrale nella Top Bar 
 .top-bar-center {
     display: flex;
     align-items: center;
     gap: 12px;
-}
+}*/
 
 /* Contenitore singolo indicatore */
 .alert-topbar-wrapper {
@@ -379,6 +403,7 @@ body, html {
     background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="%23ff4d4d" viewBox="0 0 24 24"><path d="M12 2a7 7 0 00-7 7v4.29l-1.7 1.7A1 1 0 004 17h16a1 1 0 00.7-1.71L19 13.29V9a7 7 0 00-7-7zm-1 5h2v2h2v2h-2v2h-2v-2H9V9h2V7zm1 15a2.5 2.5 0 002.45-2h-4.9A2.5 2.5 0 0012 22z"/></svg>');
 }
 .alert-topbar-wrapper.critical:not(.off) .alert-topbar-badge {
+    background: #610909;
     border: 1.5px solid #ff4d4d;
     box-shadow: 0 0 8px rgba(255, 77, 77, 0.35);
 }
@@ -394,6 +419,7 @@ body, html {
     background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="%23ff7b00" viewBox="0 0 24 24"><path d="M12 2a7 7 0 00-7 7v4.29l-1.7 1.7A1 1 0 004 17h16a1 1 0 00.7-1.71L19 13.29V9a7 7 0 00-7-7zm0 20a2.5 2.5 0 002.45-2h-4.9A2.5 2.5 0 0012 22z"/></svg>');
 }
 .alert-topbar-wrapper.warning:not(.off) .alert-topbar-badge {
+    background: #752d02c9;
     border: 1.5px solid #ff7b00;
     box-shadow: 0 0 8px rgba(255, 123, 0, 0.4);
 }
@@ -409,6 +435,7 @@ body, html {
     background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="%23f5f22f" viewBox="0 0 24 24"><path d="M12 2a7 7 0 00-7 7v4.29l-1.7 1.7A1 1 0 004 17h16a1 1 0 00.7-1.71L19 13.29V9a7 7 0 00-7-7zm0 20a2.5 2.5 0 002.45-2h-4.9A2.5 2.5 0 0012 22z"/></svg>');
 }
 .alert-topbar-wrapper.info:not(.off) .alert-topbar-badge {
+    background: #777501be;
     border: 1.5px solid #f5f22f;
     box-shadow: 0 0 8px rgba(245, 242, 47, 0.45);
 }
