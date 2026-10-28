@@ -7,8 +7,6 @@ from fastapi import Request, HTTPException, status, Depends
 from fastapi.responses import RedirectResponse
 from app.api.socket.web_receiver_socket import GeneralBoilerplateWebReceiverSocket
 from app.services import AuthService
-# Importiamo il receiver per poter accedere a get_sid_by_token
-from app.api.socket import GeneralBoilerplateServiceClientSocket
 from app.core.constants import (
     LANG_KEY,
     NOTIFY_ERROR,

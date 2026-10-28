@@ -38,7 +38,7 @@ def signal_handler(signum, frame):
 def create_web_app(dbmanager: DatabaseManager, repos: RepositoryContainer) -> FastAPI:
     app = FastAPI(title="GeneralBoilerplate Web", version="1.0.0")
 
-    @app.exception_handler(HTTPException)
+    '''@app.exception_handler(HTTPException)
     async def http_exception_handler(request: Request, exc: HTTPException):
         # Se un'eccezione 401 viene sollevata navigando su una pagina HTML
         if exc.status_code == status.HTTP_401_UNAUTHORIZED:
@@ -46,7 +46,7 @@ def create_web_app(dbmanager: DatabaseManager, repos: RepositoryContainer) -> Fa
         
         # Per tutti gli altri errori HTTP restituisce la gestione standard
         from fastapi.exception_handlers import http_exception_handler as default_handler
-        return await default_handler(request, exc)
+        return await default_handler(request, exc)'''
 
     # Iniezione riferimenti DB e Repository nello stato dell'applicazione
     app.state.dbmanager = dbmanager
