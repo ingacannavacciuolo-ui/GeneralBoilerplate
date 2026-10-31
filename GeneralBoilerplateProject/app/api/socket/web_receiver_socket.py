@@ -10,14 +10,25 @@ from app.core.constants import (
     NOTIFY_KEY,    
     NOTIFY_SEVERITY,
     LANG_KEY,
-    APPLICATION_NAME_SERVICE
+    APPLICATION_NAME_SERVICE,
+    SYSTEM_SETTING_KEY
 )
 from app.repository import AppNotificationWorkerRepo
 
+# 1. Configurazione del Redis Manager per Socket.IO
+# Legge il valore dal DB/Env, oppure usa il fallback per sviluppo locale
+def get_redis_url(db_manager=None) -> str:
+    # Se hai un'impostazione a DB puoi leggerla tramite repo, altrimenti usa variabile d'ambiente/fallback
+    return "redis://localhost:6379/0"  # Sostituisci con "redis://redis:6379/0" se sei in Docker Compose
 
-# 1. Server Socket.IO asincrono (compatibile ASGI)
+# Inizializzazione del Manager Redis
+redis_url = get_redis_url()
+mgr = socketio.AsyncRedisManager(redis_url)
+
+# 2. Server Socket.IO asincrono con Redis Client Manager (Stateless Multi-Worker Ready)
 sio = socketio.AsyncServer(
     async_mode="asgi",
+    client_manager=mgr,  # <--- Gestisce la sincronizzazione tra processi/worker Uvicorn
     cors_allowed_origins="*"
 )
 
@@ -32,27 +43,19 @@ class ServiceStatusState:
 
 status_state = ServiceStatusState()
 
-# Mappa globale in memoria: session_token -> sid del browser
-user_sockets: Dict[str, str] = {}
-
 
 class GeneralBoilerplateWebReceiverSocket(socketio.AsyncNamespace):
     """
     Namespace Socket.IO dedicato alla ricezione delle notifiche, 
     heartbeat e cambi di stato provenienti da GeneralBoilerplateService.
     """
-    def __init__(self, db_manager, lang: str = "it", fallback_lang: str = "en",):
+    def __init__(self, db_manager, lang: str = "it", fallback_lang: str = "en"):
         self.dbmanager = db_manager
         self.namespace = SOCKET_NAMESPACES.WEB
         self.service_sid = None  # Memorizza il SID di GeneralBoilerplateService
         self.lang = lang
-        self.fallback_lang =fallback_lang
+        self.fallback_lang = fallback_lang
         super().__init__(self.namespace)
-
-    @staticmethod
-    def get_sid_by_token(token: str) -> Optional[str]:
-        """Restituisce il SID del browser associato a un determinato session_token."""
-        return user_sockets.get(token)
 
     async def on_connect(self, sid, environ):
         logger.info(f"[WEB SOCKET RECEIVER] Nuova connessione client [sid: {sid}]")
@@ -78,13 +81,16 @@ class GeneralBoilerplateWebReceiverSocket(socketio.AsyncNamespace):
         )
 
     async def on_register_session(self, sid, data: Dict[str, Any]):
-        """Evento invocato dal frontend JS dopo il login per associare il session_token al sid."""
+        """
+        Evento invocato dal frontend JS dopo il login per iscrivere il SID 
+        alla Room identificata dal session_token (Gestito nativamente via Redis).
+        """
         if isinstance(data, dict):
             token = data.get("session_token")
             if token:
-                user_sockets[token] = sid
-                logger.info(f"[WEB SOCKET RECEIVER] Sessione associata con successo: [sid: {sid}]")
-
+                # Fa entrare la connessione socket nella "room" del token utente
+                await self.enter_room(sid, room=token)
+                logger.info(f"[WEB SOCKET RECEIVER] SID {sid} iscritto con successo alla Room sessione: {token}")
 
     async def on_message(self, sid, data: Dict[str, Any]):
         if not isinstance(data, dict):
@@ -96,7 +102,6 @@ class GeneralBoilerplateWebReceiverSocket(socketio.AsyncNamespace):
 
         self.service_sid = sid
         msg_type = data.get("msg_type")
-       
 
         # Se si tratta dello stato del servizio, lo gestiamo tramite il tipo
         if msg_type == MSG_SERVICE_SOCKET_TYPE.MSG_SERVICE_STATUS:
@@ -108,10 +113,7 @@ class GeneralBoilerplateWebReceiverSocket(socketio.AsyncNamespace):
             await self._handle_user_toast(data)
 
     async def on_disconnect(self, sid):
-        # Rimozione dell'associazione session_token -> sid
-        tokens_to_remove = [k for k, v in user_sockets.items() if v == sid]
-        for k in tokens_to_remove:
-            del user_sockets[k]
+        # NOTA: Socket.IO con Redis rimuove automaticamente il SID da tutte le room alla disconnessione!
 
         # SOLTANTO se a disconnettersi è il vero Service impostiamo OFFLINE e notifichiamo a tutti!
         if sid == self.service_sid:
@@ -129,10 +131,8 @@ class GeneralBoilerplateWebReceiverSocket(socketio.AsyncNamespace):
                 }
             )
         else:
-            # Se è la disconnessione di un browser (F5/Refresh), ignoriamo silenziosamente
-            logger.info(f"[WEB SOCKET RECEIVER] Browser disconnesso [sid: {sid}] (nessun impatto sullo stato)")
+            logger.info(f"[WEB SOCKET RECEIVER] Browser disconnesso [sid: {sid}]")
 
-   
     # Recupera tutti gli alert attivi per mandarli al browser
     async def on_get_active_alerts(self, sid):
         """
@@ -142,9 +142,8 @@ class GeneralBoilerplateWebReceiverSocket(socketio.AsyncNamespace):
         logger.info(f"[WEB SOCKET RECEIVER] Richiesta allerte attive dal client [sid: {sid}]")
         try:
             with self.dbmanager.get_session() as session:
-                # Usa il repository per recuperare le allerte con is_active = True
                 repo = AppNotificationWorkerRepo(session)
-                active_events = repo.get_active_notifications()  # o repo.get_all_active_notifications()
+                active_events = repo.get_active_notifications()
 
                 alerts_data = []
                 for event in active_events:
@@ -154,7 +153,7 @@ class GeneralBoilerplateWebReceiverSocket(socketio.AsyncNamespace):
                         "msg_type": MSG_SERVICE_SOCKET_TYPE.MSG_SERVICE_SEVERITY,                        
                         "notify_key": event.notify_key,
                         "notify_type": event.notify_type,
-                        "message":localized_msg,
+                        "message": localized_msg,
                         "permanent": event.permanent,
                         "severity": event.severity,
                         "is_active": True,
@@ -167,8 +166,7 @@ class GeneralBoilerplateWebReceiverSocket(socketio.AsyncNamespace):
 
         except Exception as e:
             logger.error(f"[WEB SOCKET RECEIVER] Errore durante il recupero delle allerte attive per sid {sid}: {e}", exc_info=True)
-   
-   
+
     # --- HANDLER DEDICATI PER TIPOLOGIA MESSAGGIO ---  
 
     async def _handle_service_status(self, data: Dict[str, Any]):
@@ -177,9 +175,7 @@ class GeneralBoilerplateWebReceiverSocket(socketio.AsyncNamespace):
         status_state.status = data.get("status", SERVICE_STATUS_STATES.OFFLINE)
 
         logger.info(f"[STATUS HANDLER] Service status: {status_state.status} | Msg: {data.get('message')}")
-        # EMIT verso il client Web         
         await self.emit(SOCKET_EVENTS.STATUS_UPDATE, data)
-
 
     async def _handle_service_severity(self, data: Dict[str, Any]):
         """Gestisce l'invio unico di tutti gli avvisi di severity."""
@@ -188,10 +184,7 @@ class GeneralBoilerplateWebReceiverSocket(socketio.AsyncNamespace):
         message = data.get("message", LANG_KEY.NO_DETAILS_PROVIDED)
 
         logger.info(f"[{severity} ALERT] Key: {notify_key} | Msg: {message}")
-
-        # Emette sul singolo canale Socket unico per la severity
         await self.emit(SOCKET_EVENTS.SEVERITY_UPDATE, data)
-
 
     async def _handle_user_toast(self, data: Dict[str, Any]):
         """Gestisce l'invio di notifiche toast verso il browser."""
@@ -199,10 +192,7 @@ class GeneralBoilerplateWebReceiverSocket(socketio.AsyncNamespace):
         message = data.get("message", LANG_KEY.NO_DETAILS_PROVIDED)
 
         logger.info(f"[USER TOAST] Key: {notify_key} | Msg: {message}")
-
-        # Emette sul singolo canale Socket unico per i toast
         await self.emit(SOCKET_EVENTS.USER_TOAST_UPDATE, data)
-
 
 
 def init_socket_receiver(

@@ -13,7 +13,7 @@
     <!-- Librerie esterne e Configurazione Globale dell'App -->
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script>
-        window.TRANSLATIONS = Object.freeze(JSON.parse('{{ TRANSLATIONS | default({}) | tojson | safe }}'));
+        window.langRANSLATIONS = Object.freeze(JSON.parse('{{ TRANSLATIONS | default({}) | tojson | safe }}'));
         const LANG_KEY = Object.freeze(JSON.parse('{{ LANG_KEY | tojson | safe }}'));
         const SOCKET_NAMESPACES = Object.freeze(JSON.parse('{{ SOCKET_NAMESPACES | tojson | safe }}'));
         const SOCKET_EVENTS = Object.freeze(JSON.parse('{{ SOCKET_EVENTS | tojson | safe }}'));

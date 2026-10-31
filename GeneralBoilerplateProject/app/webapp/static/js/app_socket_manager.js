@@ -35,27 +35,36 @@ const AppSocketManager = {
         this.socket.on('connect', () => {
             console.log(`[AppSocketManager] Connesso al namespace: ${SOCKET_NAMESPACES.WEB}`);
 
-        this.socket.onAny((eventName, ...args) => {
-            console.log(`[ANY SOCKET EVENT] Evento ricevuto: "${eventName}"`, args);
-        });
+            //this.socket.onAny((eventName, ...args) => {
+            //    console.log(`[ANY SOCKET EVENT] Evento ricevuto: "${eventName}"`, args);
+            //});
 
             // Legge il token dal meta tag HTML invece che dai cookie
             const metaToken = document.querySelector('meta[name="user-session-token"]')?.content;
 
             if (metaToken) {
+                // Se il token è presente viene registrato nella sessione, tramile la chiamata
+                // socket ad REGISTER_SESSION che si trova in web_receiver_socket.
+                // La registrazione è fondamentale per inviare TOAST personalizzati per utente    
                 console.log('[AppSocketManager] Token trovato. Registrazione sessione...');
                 this.socket.emit(SOCKET_EVENTS.REGISTER_SESSION, { session_token: metaToken });
             } else {
                 console.log('[AppSocketManager] Nessun token trovato nella pagina.');
             }
-
+            // Emette l'evento GET_ACTIVE_ALERTS per chiedere al DB tutte le allerte attualmente attive
+            // e mandarel all'utente connesso. La chiamata sta in web_receiver_socket
             this.socket.emit(SOCKET_EVENTS.GET_ACTIVE_ALERTS);
         });
 
-        // 1. Intercetta l'evento di aggiornamento stato operativo inviato dal backend (web_receiver_socket.py)
+        // 1. SOCKET_EVENTS.STATUS_UPDATE: Intercetta l'evento di aggiornamento stato operativo inviato dal backend (web_receiver_socket.py)
+        //    Invocato da web_receiver_socket quando riceve notifica da parte di client_service_socket per inviare
+        //    lo stato del server (CONNESSO O DISCONESSO)   
         this.socket.on(SOCKET_EVENTS.STATUS_UPDATE, (data) => this.routeMessage(data));
 
-        // 2. Intercetta la lista completa di allerte attive inviata dal DB (al refresh / login)
+
+        // 2. SOCKET_EVENTS.ACTIVE_ALERTS_LIST: Intercetta la lista completa di allerte attive inviata dal DB (al refresh / login)
+        //    Usato in fase di apertura della pagina da web_receiver_socket, per notificare 
+        //    all'utente i messaggi di alert o di info attivi
         this.socket.on(SOCKET_EVENTS.ACTIVE_ALERTS_LIST, (alerts) => {
             console.log('[AppSocketManager] Ricevute allerte attive dal DB:', alerts);
             if (Array.isArray(alerts)) {
@@ -66,13 +75,16 @@ const AppSocketManager = {
             }
         });     
 
-        // 3.  Ascolta il CANALE UNICO per tutte le allerte di severity in tempo reale
+        // 3.  SOCKET_EVENTS.SEVERITY_UPDATE: Ascolta il CANALE UNICO per tutte le allerte di severity in tempo reale
+        //     Invocato da web_receiver_socket quando riceve notifica di alert da parte di system_monitor_worker.
+        //     La connessione a web_receiver_socket, arriva tramite client_service_socket. 
+        //     Le notifiche invocate sono CRITICA, WARNING ed INFO che si attivano nel database.
         this.socket.on(SOCKET_EVENTS.SEVERITY_UPDATE, (data) => {
             this.routeMessage(data);
         });
 
 
-        // 4.  Ascolta il CANALE UNICO per i toast utente in tempo reale
+        // 4. SOCKET_EVENTS.USER_TOAST_UPDATE: Ascolta il CANALE UNICO per i toast utente in tempo reale
         this.socket.on(SOCKET_EVENTS.USER_TOAST_UPDATE, (data) => {
             //console.log("===> [DEBUG SOCKET] TOAST ARRIVATO AL CLIENT! <===", data);
             this.routeMessage(data);
@@ -97,10 +109,11 @@ const AppSocketManager = {
      * @param {Object} data - Il payload inviato dal server backend
      */
     routeMessage(data) {
-       if (!data || !data.msg_type) return;
+       if (!data) return;
 
         // Recupera il tipo di messaggio (con fallback per lo stato di servizio)
         const msgType = data.msg_type || (data.status ? MSG_SERVICE_SOCKET_TYPE.MSG_SERVICE_STATUS : null);
+        if (!msgType) return;
 
         switch (msgType) {
             case MSG_SERVICE_SOCKET_TYPE.MSG_SERVICE_STATUS:
@@ -109,10 +122,7 @@ const AppSocketManager = {
                     ServerStatusCard.handleStatusUpdate(data);
                 }
                 break;
-
-            default:
-                // Per ora ignora gli altri msg_type non gestiti
-                break;
+            
             
             
             case MSG_SERVICE_SOCKET_TYPE.MSG_SERVICE_SEVERITY:
@@ -137,8 +147,12 @@ const AppSocketManager = {
             case MSG_SERVICE_SOCKET_TYPE.MSG_USER_TOAST:
                // Invoca direttamente la funzione mostraToast di main_page.js
                 if (typeof mostraToast === 'function') {
-                    mostraToast(window.t(data.message), data.notify_key);
+                    mostraToast(window.lang(data.message), data.notify_key);
                 }
+                break;
+
+            default:
+                // Per ora ignora gli altri msg_type non gestiti
                 break;
         }
     }

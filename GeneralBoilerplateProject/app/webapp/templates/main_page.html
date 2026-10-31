@@ -18,12 +18,13 @@
     -->
     <meta name="user-session-token" content="{{ user.session_token if user else '' }}">
     <script>
-        window.TRANSLATIONS = Object.freeze(JSON.parse('{{ TRANSLATIONS | default({}) | tojson | safe }}'));
+        window.langRANSLATIONS = Object.freeze(JSON.parse('{{ TRANSLATIONS | default({}) | tojson | safe }}'));
         const LANG_KEY = Object.freeze(JSON.parse('{{ LANG_KEY | tojson | safe }}'));
         const NOTIFY_ERROR = Object.freeze(JSON.parse('{{ NOTIFY_ERROR | tojson | safe }}'));
         const SOCKET_NAMESPACES = Object.freeze(JSON.parse('{{ SOCKET_NAMESPACES | tojson | safe }}'));
         const SOCKET_EVENTS = Object.freeze(JSON.parse('{{ SOCKET_EVENTS | tojson | safe }}'));
         const MSG_SERVICE_SOCKET_TYPE = Object.freeze(JSON.parse('{{ MSG_SERVICE_SOCKET_TYPE | tojson | safe }}'));
+        const SERVICE_STATUS_STATES = Object.freeze(JSON.parse('{{ SERVICE_STATUS_STATES | tojson | safe }}'));
     </script>
 </head>
 <body>
@@ -65,12 +66,16 @@
             </div>
         </div>
 
-        <!-- Lato Destro: Icona Utente + Bottone Logout -->
+        <!-- Lato Destro: Icona Utente + Indicatori + Bottone Logout -->
         <div class="top-bar-right">
             <div class="user-profile-box">
                 <img src="/static/img/icons8-utente-40.png" alt="User Icon" class="user-icon">
                 <span class="user-name-text">{{ user.username if user and user.username else 'Utente' }}</span>
             </div>
+
+            <!-- Pallino di Stato Server (Pulsante Verde/Rosso) -->
+            <div id="server-status-dot" class="server-status-dot offline" title=""></div>
+
             <a href="/logout" class="btn-logout">
                 {{ _(LANG_KEY.LOGOUT) }}
             </a>

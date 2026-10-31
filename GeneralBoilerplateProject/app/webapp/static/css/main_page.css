@@ -83,11 +83,11 @@ main {
     gap: 12px;
 }
 
-/* Lato destro: Icona Utente e Pulsante Logout */
+/* Lato destro: Profilo, Pallino Server e Logout */
 .top-bar-right {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 12px;
 }
 
 
@@ -115,33 +115,39 @@ main {
     margin-left: 4px;
 }
 
+/* Chip unico per la profilazione utente */
 .user-profile-box {
     display: flex;
     align-items: center;
-    gap: 8px; /* Spazio tra icona e nome */
+    gap: 8px;
+    padding: 3px 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(0, 210, 255, 0.15);
+    border-radius: 6px;
 }
 
 .user-name-text {
     color: var(--text-light);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-weight: 600;
 }
 
 .user-icon {
-    height: 20px;
+    height: 18px;
     width: auto;    
     object-fit: contain;
-    filter: drop-shadow(0 0 2px rgba(0, 210, 255, 0.5));
+    filter: drop-shadow(0 0 3px rgba(0, 210, 255, 0.6));
 }
 
+/* Pulsante Logout elegante integrato nel tema */
 .btn-logout {
     display: inline-flex;
     align-items: center;
     padding: 4px 12px;
-    background: rgba(239, 68, 68, 0.15);
-    color: #ff6b6b;
-    border: 1px solid rgba(239, 68, 68, 0.4);
-    border-radius: 5px;
+    background: rgba(239, 68, 68, 0.08);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 6px;
     text-decoration: none;
     font-size: 0.8rem;
     font-weight: 600;
@@ -149,10 +155,10 @@ main {
 }
 
 .btn-logout:hover {
-    background: rgba(239, 68, 68, 0.35);
-    border-color: var(--danger-red);
+    background: rgba(239, 68, 68, 0.25);
+    border-color: #ef4444;
     color: #ffffff;
-    box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.35);
 }
 
 
@@ -483,4 +489,60 @@ main {
 /* Nasconde definitivamente il tasto di chiusura per i messaggi permanenti nella Top Bar */
 .alert-topbar-dropdown .alert-close-btn {
     display: none !important;
+}
+
+/* Pallino di Stato Server */
+.server-status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    margin: 0 4px;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Stato ONLINE: Verde Pulsante */
+.server-status-dot.online {
+    background-color: #2ecc71;
+    box-shadow: 0 0 8px #2ecc71;
+    animation: pulse-green 2s infinite;
+}
+
+/* Stato OFFLINE: Rosso Pulsante */
+.server-status-dot.offline {
+    background-color: #e74c3c;
+    box-shadow: 0 0 8px #e74c3c;
+    animation: pulse-red 2s infinite;
+}
+
+/* Animazione Pulsazione Verde */
+@keyframes pulse-green {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7);
+    }
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 8px rgba(46, 204, 113, 0);
+    }
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(46, 204, 113, 0);
+    }
+}
+
+/* Animazione Pulsazione Rossa */
+@keyframes pulse-red {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7);
+    }
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 8px rgba(231, 76, 60, 0);
+    }
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(231, 76, 60, 0);
+    }
 }

@@ -1,11 +1,9 @@
 # library/api/web/dependencies.py
 
 import asyncio
-from tkinter import NO
 from typing import Dict, Any, Callable
-from fastapi import Request, HTTPException, status, Depends
+from fastapi import Request, status, Depends
 from fastapi.responses import RedirectResponse
-from app.api.socket.web_receiver_socket import GeneralBoilerplateWebReceiverSocket
 from app.services import AuthService
 from app.core.constants import (
     LANG_KEY,
@@ -24,13 +22,16 @@ def get_auth_service(request: Request) -> AuthService:
 
 async def _send_notification(sio_server, 
                              target_namespace, 
-                             user_sid,
+                             room_token,
                              socket_events,
                              application_name,
                              msg_type,
                              notify_error,
                              message_key):
-    if sio_server:
+    """
+    Invia una notifica Socket.IO puntando alla Room identificata dal room_token (session_token).
+    """
+    if sio_server and room_token:
         await sio_server.emit(
             socket_events,
             {
@@ -40,7 +41,7 @@ async def _send_notification(sio_server,
                 "message": message_key
             },
             namespace=target_namespace,
-            to=user_sid
+            to=room_token  # <--- Emesso verso la Room dell'utente su Redis!
         )
         await asyncio.sleep(2.5)
     
@@ -51,7 +52,6 @@ async def get_current_user_session(
 ) -> Dict[str, Any]:
     """
     Dipendenza FastAPI per proteggere le rotte web.
-    
     Estrae il cookie 'session_token', ne esegue la validazione e il rinnovo 
     su app_users_sessions e restituisce i dettagli dell'utente con i permessi.
     """
@@ -65,30 +65,19 @@ async def get_current_user_session(
 
     # Recuperiamo l'istanza di socketio.AsyncServer già registrata in app.state.sio
     sio_server = getattr(request.app.state, "sio", None)
-
-    
     target_namespace = getattr(SOCKET_NAMESPACES.WEB, "value", SOCKET_NAMESPACES.WEB)
-    # Recuperiamo il SID della connessione Socket legato a questo token
-    user_sid = GeneralBoilerplateWebReceiverSocket.get_sid_by_token(token)
+
     # CASO 1: Token di sessione assente
     if not token:
-        await _send_notification(sio_server, 
-                                  target_namespace, 
-                                  user_sid,
-                                  SOCKET_EVENTS.USER_TOAST_UPDATE,
-                                  APPLICATION_NAME_SERVICE,
-                                  MSG_SERVICE_SOCKET_TYPE.MSG_USER_TOAST,
-                                  "error",
-                                  LANG_KEY.ALERT_MISSING_TOKEN)  
+        # Senza token non c'è una room a cui inviare il toast
         return None 
    
-
-   # CASO 2: Token inviato ma sessione scaduta sul DB
+    # CASO 2: Token inviato ma sessione scaduta/non valida sul DB
     session_info = auth_service.validate_session(token)
     if not session_info:        
         await _send_notification(sio_server, 
                                   target_namespace, 
-                                  user_sid,
+                                  token,  # <--- Passiamo il token come identificatore di Room
                                   SOCKET_EVENTS.USER_TOAST_UPDATE,
                                   APPLICATION_NAME_SERVICE,
                                   MSG_SERVICE_SOCKET_TYPE.MSG_USER_TOAST,
@@ -111,19 +100,17 @@ def require_permission(permission_name: str) -> Callable:
         user_permissions = user.get("permissions", [])
         
         if permission_name not in user_permissions:
-            # Estraiamo il valore reale della costante
             error_value = getattr(NOTIFY_ERROR.INSUFFICIENT_PERMISSIONS, "value", NOTIFY_ERROR.INSUFFICIENT_PERMISSIONS)
             
-            # Se la richiesta ha un Referer dello stesso dominio, inviamo un Toast via Socket se possibile
             token = request.cookies.get("session_token")
-            user_sid = GeneralBoilerplateWebReceiverSocket.get_sid_by_token(token) if token else None
             sio_server = getattr(request.app.state, "sio", None)
             target_namespace = getattr(SOCKET_NAMESPACES.WEB, "value", SOCKET_NAMESPACES.WEB)
             
-            if sio_server and user_sid:
+            # Se abbiamo un token e il server socket, inviamo il toast alla Room del token
+            if sio_server and token:
                 await _send_notification(sio_server, 
                                   target_namespace, 
-                                  user_sid,
+                                  token,  # <--- Invia alla Room utente
                                   SOCKET_EVENTS.USER_TOAST_UPDATE,
                                   APPLICATION_NAME_SERVICE,
                                   MSG_SERVICE_SOCKET_TYPE.MSG_USER_TOAST,
@@ -139,11 +126,10 @@ def require_permission(permission_name: str) -> Callable:
                 first_page_url = repo_container.appsystemsettingsrepo.get_setting_value(
                     SYSTEM_SETTING_KEY.WEB_FIRST_PAGE, default_value=GENERAL_BOILERPLATE_WEB_FIRST_PAGE_DEFAULT
                 )
-                redirect_url = f"{first_page_url}"#?reason={error_value}"
+                redirect_url = f"{first_page_url}"
 
             return RedirectResponse(url=redirect_url, status_code=status.HTTP_303_SEE_OTHER)
 
         return user
 
     return permission_checker
-

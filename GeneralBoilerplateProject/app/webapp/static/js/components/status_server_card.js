@@ -34,7 +34,7 @@ const ServerStatusCard = {
         this.connected = true;
         this.cardEl.classList.remove('status-disconnected');
         this.cardEl.classList.add('status-connected');        
-        const statusText = window.t(LANG_KEY.STATUS_CONNECTED, customText);
+        const statusText = window.lang(LANG_KEY.STATUS_CONNECTED, customText);
         this.textEl.textContent = statusText.toUpperCase();
     },
 
@@ -44,7 +44,7 @@ const ServerStatusCard = {
         this.connected = false;
         this.cardEl.classList.remove('status-connected');
         this.cardEl.classList.add('status-disconnected');
-        const statusText = window.t(LANG_KEY.STATUS_DISCONNECTED, customText);
+        const statusText = window.lang(LANG_KEY.STATUS_DISCONNECTED, customText);
         this.textEl.textContent = statusText.toUpperCase();
     },
 

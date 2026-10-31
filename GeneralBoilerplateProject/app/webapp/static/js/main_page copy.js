@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const reason = urlParams.get('reason');
 
     if (reason === NOTIFY_ERROR.INSUFFICIENT_PERMISSIONS) {
-        const messaggio = window.t(LANG_KEY.ALERT_INSUFFICIENT_PERMISSIONS );
+        const messaggio = window.lang(LANG_KEY.ALERT_INSUFFICIENT_PERMISSIONS );
         
         mostraToast(messaggio, "error");
 
@@ -29,11 +29,11 @@ window.fetch = async function (...args) {
         const url = new URL(response.url);
         const reason = url.searchParams.get('reason');
 
-        let messaggio = window.t(LANG_KEY.ALERT_SESSION_EXPIRED);
+        let messaggio = window.lang(LANG_KEY.ALERT_SESSION_EXPIRED);
         if (reason === NOTIFY_ERROR.MISSING_TOKEN) {
-            messaggio = window.t(LANG_KEY.ALERT_MISSING_TOKEN);
+            messaggio = window.lang(LANG_KEY.ALERT_MISSING_TOKEN);
         } else if (reason === NOTIFY_ERROR.SESSION_EXPIRED) {
-            messaggio = window.t(LANG_KEY.ALERT_SESSION_EXPIRED);
+            messaggio = window.lang(LANG_KEY.ALERT_SESSION_EXPIRED);
         }
 
         // Fai scattare subito il Toast e avvia il timer per il redirect
@@ -47,11 +47,11 @@ window.fetch = async function (...args) {
     if (response.status === 401 && !window.location.pathname.endsWith('/')) {
         const data = await response.clone().json().catch(() => ({}));
 
-        let messaggio = window.t(LANG_KEY.ALERT_SESSION_EXPIRED);
+        let messaggio = window.lang(LANG_KEY.ALERT_SESSION_EXPIRED);
         if (data.detail === NOTIFY_ERROR.MISSING_TOKEN) {
-            messaggio = window.t(LANG_KEY.ALERT_MISSING_TOKEN);
+            messaggio = window.lang(LANG_KEY.ALERT_MISSING_TOKEN);
         } else if (data.detail === NOTIFY_ERROR.SESSION_EXPIRED) {
-            messaggio = window.t(LANG_KEY.ALERT_SESSION_EXPIRED);
+            messaggio = window.lang(LANG_KEY.ALERT_SESSION_EXPIRED);
         }
 
         forzaLogoutSessioneScaduta(messaggio);
@@ -81,7 +81,7 @@ async function apiFetch(url, options = {}) {
         // Chiama il fetch che ora è protetto dall'intercettore globale
         return await fetch(url, options);
     } catch (error) {
-        mostraToast(window.t(LANG_KEY.SERVER_CONNECTION_ERROR), "error");
+        mostraToast(window.lang(LANG_KEY.SERVER_CONNECTION_ERROR), "error");
         throw error;
     }
 }
@@ -125,7 +125,7 @@ function mostraToast(messaggio, tipo = 'success') {
 // ==========================================================================
 // 4. FUNZIONE PER REDIRECT SU SESSIONE SCADUTA
 // ==========================================================================
-function forzaLogoutSessioneScaduta(messaggio = window.t(LANG_KEY.ALERT_SESSION_EXPIRED)) {
+function forzaLogoutSessioneScaduta(messaggio = window.lang(LANG_KEY.ALERT_SESSION_EXPIRED)) {
     //console.warn("[SESSION] Intercettata sessione scaduta:", messaggio);
 
     // 1. Pulisce la sessione locale del browser

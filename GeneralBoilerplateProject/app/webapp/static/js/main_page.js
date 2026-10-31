@@ -174,3 +174,41 @@ function mostraToast(messaggio, tipo = 'success') {
         }, 500);
     }, 4000);
 }
+
+// --------------------------------------------------------------------------
+// OGGETTO GLOBALE: ServerStatusCard
+// Invocato direttamente da app_socket_manager.js tramite:
+// ServerStatusCard.handleStatusUpdate(data);
+// ServerStatusCard.setDisconnected();
+// --------------------------------------------------------------------------
+window.ServerStatusCard = {
+    /**
+     * Aggiorna lo stato visivo del pallino nella top bar
+     * @param {Object} data - Payload socket con la proprietà `status` ('ONLINE' | 'OFFLINE')
+     */
+    handleStatusUpdate: function(data) {
+        if (!data) return;
+
+        const dotEl = document.getElementById('server-status-dot');
+        if (!dotEl) return;
+
+        const isOnline = (data.status === SERVICE_STATUS_STATES.ONLINE);
+
+        if (isOnline) {
+            dotEl.classList.remove(SERVICE_STATUS_STATES.OFFLINE);
+            dotEl.classList.add(SERVICE_STATUS_STATES.ONLINE);
+            dotEl.title = window.lang(LANG_KEY.SERVICE_ALIVE);
+        } else {
+            dotEl.classList.remove(SERVICE_STATUS_STATES.ONLINE);
+            dotEl.classList.add(SERVICE_STATUS_STATES.OFFLINE);
+            dotEl.title = window.lang(LANG_KEY.SERVICE_OFFLINE);
+        }
+    },
+
+    /**
+     * Fallback invocato alla disconnessione del WebSocket
+     */
+    setDisconnected: function() {
+        this.handleStatusUpdate({ status: SERVICE_STATUS_STATES.OFFLINE });
+    }
+};
