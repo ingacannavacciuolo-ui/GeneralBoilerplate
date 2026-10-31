@@ -14,5 +14,7 @@
 6. Definire le key ed i messaggi preimpostati per Alert e notifiche. OK
 
 7. Gestire le costanti e la lingua per tutti i messaggi utente. - OK
+
+8. Gestire url redis direttamente da database con lettura configurazione del sistema
     
 
